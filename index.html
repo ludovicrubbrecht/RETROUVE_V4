@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Retrouve">
+<title>Retrouve</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;width:100%;background:#111;display:flex;align-items:center;justify-content:center;overflow:hidden;overscroll-behavior:none;}
+#app{position:relative;width:390px;height:844px;background:#0A0A0A;border-radius:44px;overflow:hidden;border:1px solid #2A2A2A;font-family:'Jost',sans-serif;}
+@media(max-width:430px){html,body{display:block;background:#0A0A0A;overflow:auto;}#app{width:100%;height:100vh;height:100dvh;height:calc(var(--app-h,100vh));border-radius:0;border:none;}}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;background:#0A0A0A;overflow:hidden;will-change:transform;-webkit-backface-visibility:hidden;backface-visibility:hidden;}
+.screen.active{display:flex;}
+.topbar{flex-shrink:0;padding:44px 20px 14px;position:relative;display:flex;flex-direction:column;align-items:center;}
+.topbar-back{position:absolute;left:18px;top:46px;background:none;border:none;cursor:pointer;padding:8px;line-height:0;}
+.logo{font-family:'Playfair Display',serif;font-size:26px;font-weight:400;color:#C9A96E;letter-spacing:8px;line-height:1;text-indent:8px;}
+.topbar-sub{font-size:11px;color:#6A6050;letter-spacing:1.5px;text-transform:uppercase;margin-top:4px;}
+.steps{flex-shrink:0;display:flex;gap:6px;padding:0 20px 14px;}
+.step{height:2px;flex:1;border-radius:1px;background:#2A2A2A;}
+.step.done{background:#C9A96E;}
+.screen-body{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 20px;-webkit-overflow-scrolling:touch;}
+.screen-body::-webkit-scrollbar{display:none;}
+.screen-footer{flex-shrink:0;padding:10px 20px 32px;background:#0A0A0A;}
+.cta{display:block;width:100%;padding:16px;border-radius:14px;background:#C9A96E;color:#0A0A0A;border:none;font-size:16px;font-weight:500;cursor:pointer;font-family:'Jost',sans-serif;letter-spacing:0.5px;text-align:center;}
+.cta:disabled{background:#1E1E1E;color:#555;border:0.5px solid #333;cursor:not-allowed;opacity:1;}
+
+/* HOME */
+.search-wrap{flex-shrink:0;padding:0 20px 6px;}
+.search-inner{display:flex;align-items:center;gap:10px;background:#FFFFFF;border:0.5px solid #E0E0E0;border-radius:12px;padding:0 16px;height:46px;}
+.search-inner:focus-within{border-color:#C9A96E;}
+.search-inner input{flex:1;background:transparent;border:none;outline:none;font-size:15px;color:#1A1A1A;font-family:'Jost',sans-serif;padding:0;min-width:0;}
+.search-inner input::placeholder{color:#A0A0A0;}
+.view-toggle{flex-shrink:0;display:flex;gap:6px;padding:8px 20px 4px;}
+.toggle-btn{flex:1;padding:8px 0;border-radius:10px;background:#141414;border:0.5px solid #2A2A2A;font-size:12px;color:#6A6050;cursor:pointer;font-family:'Jost',sans-serif;letter-spacing:0.5px;transition:all 0.15s;}
+.toggle-btn.active{background:rgba(201,169,110,0.1);border-color:#C9A96E;color:#C9A96E;}
+.sec-label{flex-shrink:0;font-size:10px;font-weight:500;color:#6A6050;letter-spacing:2px;text-transform:uppercase;padding:6px 20px 8px;}
+.objects-list{flex:1;overflow-y:auto;padding:0 20px;-webkit-overflow-scrolling:touch;}
+.objects-list::-webkit-scrollbar{display:none;}
+.object-card{display:flex;align-items:center;gap:13px;padding:12px 14px;background:#141414;border:0.5px solid #2A2A2A;border-radius:16px;margin-bottom:8px;cursor:pointer;}
+.object-card:active{border-color:#C9A96E;}
+.object-icon-wrap{width:46px;height:46px;border-radius:11px;background:#1E1E1E;border:0.5px solid #3A3A3A;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+.object-icon-wrap img{width:100%;height:100%;object-fit:cover;}
+.object-info{flex:1;min-width:0;}
+.object-name{font-size:15px;color:#F5F0E8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.object-loc{font-size:12px;color:#6A6050;margin-top:2px;}
+.object-loc span{color:#C9A96E;}
+/* ── SWIPE SUPPRESSION ── */
+/* Bouton supprimer — simple croix */
+.del-x{
+  background:none;border:none;cursor:pointer;
+  padding:8px;flex-shrink:0;line-height:0;
+  opacity:0.5;transition:opacity 0.15s;
+}
+.del-x:active{opacity:1;}
+.empty{text-align:center;padding:40px 20px;color:#6A6050;}
+.empty p{font-size:13px;line-height:1.8;margin-top:12px;}
+.fab-row{flex-shrink:0;padding:8px 20px 32px;display:flex;justify-content:flex-end;align-items:center;gap:12px;}
+.fab-label{font-size:14px;color:#C9A96E;font-family:'Jost',sans-serif;background:none;border:none;cursor:pointer;padding:0;}
+.fab{width:52px;height:52px;border-radius:50%;background:#0A0A0A;border:1.5px solid #C9A96E;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+/* VUE PAR PIÈCE */
+.room-group{margin-bottom:12px;}
+.room-group-header{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#141414;border:0.5px solid #2A2A2A;border-radius:14px;cursor:pointer;margin-bottom:6px;}
+.room-group-header:active{border-color:#C9A96E;}
+.room-group-icon{width:36px;height:36px;border-radius:9px;background:#1E1E1E;border:0.5px solid #3A3A3A;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.room-group-info{flex:1;}
+.room-group-name{font-size:14px;color:#C9A96E;}
+.room-group-count{font-size:11px;color:#6A6050;margin-top:1px;}
+.room-group-chevron{transition:transform 0.2s;line-height:0;}
+.room-group-chevron.open{transform:rotate(90deg);}
+.room-items{display:none;padding-left:12px;}
+.room-items.open{display:block;}
+.room-item{display:flex;align-items:center;gap:12px;padding:10px 12px;background:#0F0F0F;border:0.5px solid #1E1E1E;border-radius:12px;margin-bottom:6px;cursor:pointer;}
+.room-item:active{border-color:#C9A96E;}
+.room-item-icon{width:36px;height:36px;border-radius:8px;background:#1A1A1A;border:0.5px solid #2A2A2A;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+.room-item-icon img{width:100%;height:100%;object-fit:cover;}
+.room-item-info{flex:1;min-width:0;}
+.room-item-name{font-size:14px;color:#F5F0E8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.room-item-sub{font-size:11px;color:#6A6050;margin-top:1px;}
+
+/* PICTO GRID */
+.picto-scroll{flex:1;overflow-y:auto;padding:10px 20px 0;-webkit-overflow-scrolling:touch;}
+.picto-scroll::-webkit-scrollbar{display:none;}
+.picto-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.picto-btn{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;border:0.5px solid #2A2A2A;border-radius:16px;background:#141414;cursor:pointer;padding:8px;position:relative;overflow:hidden;}
+.picto-btn .picto-bg{display:none;}
+.picto-btn .picto-inner{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.picto-label{font-size:11px;color:#A09880;letter-spacing:0.5px;text-transform:uppercase;text-align:center;line-height:1.2;}
+.picto-btn.selected{border:1.5px solid #C9A96E;background:rgba(201,169,110,0.1);transform:scale(1.05);}
+.picto-btn.selected .picto-label{color:#E8D5AA;}
+.picto-btn .picto-inner svg{width:28px;height:28px;}
+.check-badge{position:absolute;top:7px;right:7px;z-index:3;width:17px;height:17px;border-radius:50%;background:#C9A96E;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s;}
+.picto-btn.selected .check-badge{opacity:1;}
+
+/* CHAMP LIBRE "AUTRE" — apparaît sous la grille */
+.autre-field{
+  margin-top:12px;padding-bottom:4px;
+  animation:fadeIn 0.2s ease;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+.autre-field-label{font-size:10px;color:#C9A96E;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+.autre-field input{
+  width:100%;padding:12px 14px;
+  border:0.5px solid #C9A96E;border-radius:12px;
+  font-size:15px;background:#141414;color:#F5F0E8;
+  outline:none;font-family:'Jost',sans-serif;-webkit-appearance:none;
+}
+.autre-field input::placeholder{color:#6A6050;}
+
+/* FORMS */
+.form-section{margin-bottom:16px;}
+.field-label{font-size:11px;font-weight:500;color:#6A6050;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px;}
+.field-input{width:100%;padding:12px 14px;border:0.5px solid #3A3A3A;border-radius:12px;font-size:15px;background:#141414;color:#F5F0E8;outline:none;font-family:'Jost',sans-serif;-webkit-appearance:none;}
+.field-input::placeholder{color:#6A6050;}
+.field-input:focus{border-color:#C9A96E;}
+.field-textarea{width:100%;padding:12px 14px;border:0.5px solid #3A3A3A;border-radius:12px;font-size:15px;background:#141414;color:#F5F0E8;outline:none;font-family:'Jost',sans-serif;min-height:80px;resize:none;-webkit-appearance:none;}
+.field-textarea::placeholder{color:#6A6050;}
+.field-textarea:focus{border-color:#C9A96E;}
+.name-row{display:flex;gap:8px;align-items:stretch;}
+.name-row .field-input{flex:1;}
+.mic-btn-el{width:48px;flex-shrink:0;border-radius:12px;background:#141414;border:0.5px solid #3A3A3A;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.mic-btn-el.listening{background:rgba(201,169,110,0.15);border-color:#C9A96E;animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(201,169,110,0.3);}50%{box-shadow:0 0 0 7px rgba(201,169,110,0);}}
+.mic-hint{font-size:11px;color:#6A6050;margin-top:5px;}
+.mic-hint.active{color:#C9A96E;}
+
+/* ICÔNES OBJETS */
+.obj-icons-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.obj-icon-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:10px 4px 8px;border:0.5px solid #2A2A2A;border-radius:12px;background:#141414;cursor:pointer;transition:border-color 0.15s,background 0.15s;}
+.obj-icon-btn.selected{border-color:#C9A96E;background:rgba(201,169,110,0.08);transform:scale(1.05);}
+.obj-icon-label{font-size:8.5px;color:#6A6050;text-align:center;line-height:1.2;letter-spacing:0.3px;text-transform:uppercase;}
+.obj-icon-btn.selected .obj-icon-label{color:#C9A96E;}
+
+.photo-zone{position:relative;border:0.5px dashed #3A3A3A;border-radius:14px;overflow:hidden;cursor:pointer;}
+.photo-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:22px;background:#141414;}
+.photo-placeholder span{font-size:12px;color:#6A6050;}
+.photo-preview-img{width:100%;height:150px;object-fit:cover;display:block;}
+.photo-remove-btn{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(10,10,10,0.85);border:0.5px solid #666;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.photo-input{display:none;}
+
+/* FOUND */
+.topbar-actions{display:flex;gap:6px;position:absolute;right:18px;top:46px;}
+.found-hero{flex-shrink:0;position:relative;height:130px;overflow:hidden;}
+.found-hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;}
+.found-hero-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(10,10,10,0.55) 100%);pointer-events:none;}
+.found-hero-icon{position:absolute;bottom:12px;left:20px;}
+.found-content{flex:1;overflow-y:auto;padding:0 20px 20px;-webkit-overflow-scrolling:touch;}
+.found-content::-webkit-scrollbar{display:none;}
+.found-title{font-family:'Playfair Display',serif;font-size:26px;font-weight:400;color:#F5F0E8;letter-spacing:1px;margin-bottom:14px;}
+.found-rows{background:#141414;border:0.5px solid #2A2A2A;border-radius:16px;overflow:hidden;margin-bottom:14px;}
+.found-row{display:flex;align-items:center;gap:14px;padding:13px 16px;border-bottom:0.5px solid #2A2A2A;}
+.found-row:last-child{border-bottom:none;}
+.found-row-label{font-size:10px;color:#6A6050;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;}
+.found-row-val{font-size:15px;color:#F5F0E8;}
+.found-photo{width:100%;border-radius:14px;overflow:hidden;border:0.5px solid #2A2A2A;cursor:pointer;}
+.found-photo img{width:100%;display:block;max-height:180px;object-fit:cover;transition:opacity 0.15s;}
+.found-photo:active img{opacity:0.85;}
+/* Visionneuse plein écran */
+.viewer-overlay{position:absolute;inset:0;z-index:300;background:rgba(0,0,0,0.95);display:none;align-items:center;justify-content:center;flex-direction:column;}
+.viewer-overlay.show{display:flex;}
+.viewer-overlay img{max-width:100%;max-height:85%;object-fit:contain;border-radius:4px;}
+.viewer-close{position:absolute;top:48px;right:20px;background:none;border:none;cursor:pointer;padding:8px;line-height:0;}
+.found-photo-label{font-size:10px;color:#6A6050;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px;}
+
+/* ── TUTO ── */
+.tuto-overlay{
+  position:absolute;inset:0;z-index:100;
+  background:rgba(10,10,10,0.55);
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  padding:0 32px 80px;
+  opacity:0;pointer-events:none;
+  transition:opacity 0.4s;
+}
+.tuto-overlay.show{opacity:1;pointer-events:all;}
+.tuto-bubble{
+  background:#141414;border:0.5px solid #C9A96E;border-radius:20px;
+  padding:24px 22px;text-align:center;width:100%;
+  animation:bubbleIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes bubbleIn{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.tuto-step{font-size:10px;color:#C9A96E;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;}
+.tuto-text{font-family:'Playfair Display',serif;font-size:22px;font-weight:400;color:#F5F0E8;line-height:1.4;margin-bottom:6px;}
+.tuto-sub{font-size:13px;color:#6A6050;line-height:1.5;}
+.tuto-btn{
+  margin-top:18px;padding:13px 32px;border-radius:12px;
+  background:#C9A96E;color:#0A0A0A;border:none;
+  font-size:14px;font-weight:500;font-family:'Jost',sans-serif;
+  cursor:pointer;letter-spacing:0.5px;
+}
+.tuto-skip{margin-top:12px;background:none;border:none;color:#6A6050;font-size:12px;font-family:'Jost',sans-serif;cursor:pointer;letter-spacing:0.5px;}
+/* Highlight pulse */
+.tuto-pulse{animation:tutoPulse 1.2s ease-in-out infinite;}
+@keyframes tutoPulse{0%,100%{box-shadow:0 0 0 0 rgba(201,169,110,0.5);}50%{box-shadow:0 0 0 10px rgba(201,169,110,0);}}
+
+/* ── FÉLICITATIONS ── */
+.congrats-overlay{
+  position:absolute;inset:0;z-index:110;
+  background:rgba(10,10,10,0.95);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px;
+  opacity:0;pointer-events:none;
+  transition:opacity 0.4s;
+}
+.congrats-overlay.show{opacity:1;pointer-events:all;}
+.congrats-emoji{font-size:56px;margin-bottom:16px;animation:emojiPop 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.2s both;}
+@keyframes emojiPop{from{transform:scale(0);opacity:0;}to{transform:scale(1);opacity:1;}}
+.congrats-title{font-family:'Playfair Display',serif;font-size:32px;font-weight:400;color:#C9A96E;letter-spacing:1px;text-align:center;margin-bottom:12px;animation:fadeUp 0.5s ease 0.4s both;}
+.congrats-sub{font-size:14px;color:#A09880;text-align:center;line-height:1.7;animation:fadeUp 0.5s ease 0.6s both;}
+@keyframes fadeUp{from{transform:translateY(10px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.confetti-wrap{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+.confetti-piece{position:absolute;width:8px;height:8px;border-radius:2px;animation:confettiFall linear both;}
+@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1;}100%{transform:translateY(900px) rotate(720deg);opacity:0;}}
+.congrats-btn{margin-top:32px;padding:14px 40px;border-radius:12px;background:#C9A96E;color:#0A0A0A;border:none;font-size:15px;font-weight:500;font-family:'Jost',sans-serif;cursor:pointer;animation:fadeUp 0.5s ease 0.8s both;}
+
+/* ── INTRO ── */
+.intro-screen{
+  position:absolute;inset:0;z-index:500;
+  background:#0A0A0A;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:40px 32px;
+  opacity:1;transition:opacity 0.5s ease;
+}
+.intro-screen.hide{opacity:0;pointer-events:none;}
+.intro-logo{
+  font-family:'Playfair Display',serif;
+  font-size:42px;font-weight:400;
+  color:#C9A96E;letter-spacing:10px;
+  text-indent:10px;
+  opacity:0;animation:introFadeUp 0.8s ease 0.3s both;
+}
+.intro-loupe{vertical-align:super;margin-left:3px;opacity:0.7;}
+.intro-line{
+  width:40px;height:1px;
+  background:linear-gradient(90deg,transparent,#C9A96E,transparent);
+  margin:20px 0;
+  opacity:0;animation:introFadeUp 0.6s ease 0.7s both;
+}
+.intro-tagline{
+  font-family:'Playfair Display',serif;
+  font-size:18px;font-weight:400;
+  color:#C9A96E;letter-spacing:2px;
+  opacity:0.85;text-align:center;
+  opacity:0;animation:introFadeUp 0.6s ease 0.9s both;
+}
+.intro-bottom{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:0 32px 52px;
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+}
+.intro-cta{
+  width:100%;padding:16px;border-radius:14px;
+  background:#C9A96E;color:#0A0A0A;border:none;
+  font-size:16px;font-weight:500;
+  font-family:'Jost',sans-serif;letter-spacing:0.5px;
+  cursor:pointer;text-align:center;
+  opacity:0;animation:introFadeUp 0.6s ease 1.2s both;
+  transition:transform 0.15s;
+}
+.intro-cta:active{transform:scale(0.97);}
+.intro-hint{
+  font-size:11px;color:#6A6050;letter-spacing:1px;
+  opacity:0;animation:introFadeUp 0.5s ease 1.5s both;
+}
+@keyframes introFadeUp{
+  from{transform:translateY(14px);opacity:0;}
+  to{transform:translateY(0);opacity:1;}
+}
+
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- INTRO (1ère ouverture uniquement) -->
+<div class="intro-screen" id="intro-screen" style="display:none;">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+    <div class="intro-logo">Retrouve<svg class="intro-loupe" width="10" height="10" viewBox="0 0 10 10"><circle cx="4" cy="4" r="3" fill="none" stroke="#C9A96E" stroke-width="1.5"/><line x1="6.5" y1="6.5" x2="9" y2="9" stroke="#C9A96E" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+    <div class="intro-line"></div>
+    <div class="intro-tagline">Retrouve ce qui compte.</div>
+  </div>
+  <div class="intro-bottom">
+    <button class="intro-cta" onclick="dismissIntro()">Commencer</button>
+  </div>
+</div>
+
+<!-- HOME -->
+<div class="screen active" id="screen-home">
+  <div class="topbar"><div class="logo">Retrouve<svg width="7" height="7" viewBox="0 0 10 10" style="vertical-align:super;margin-left:2px;opacity:0.7;"><circle cx="4" cy="4" r="3" fill="none" stroke="#C9A96E" stroke-width="1.5"/><line x1="6.5" y1="6.5" x2="9" y2="9" stroke="#C9A96E" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="topbar-sub">Retrouvez vos objets</div>
+  </div>
+  <div class="search-wrap">
+    <div class="search-inner">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A0A0A0" stroke-width="1.5" stroke-linecap="round" style="flex-shrink:0;"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
+      <input type="text" id="search-input" placeholder="Chercher un objet…" oninput="filterObjects()" autocomplete="off">
+    </div>
+  </div>
+  <div class="view-toggle">
+    <button class="toggle-btn active" id="toggle-list" onclick="setView('list')">Par objet</button>
+    <button class="toggle-btn" id="toggle-room" onclick="setView('room')">Par pièce</button>
+  </div>
+  <div class="sec-label" id="list-label">Mes objets</div>
+  <div class="objects-list" id="objects-list"></div>
+  <div class="fab-row" id="fab-area">
+    <button class="fab-label" onclick="goToAdd()">Ajouter un objet</button>
+    <button class="fab" onclick="goToAdd()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A96E" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- VISIONNEUSE PHOTO -->
+<div class="viewer-overlay" id="photo-viewer" onclick="closeViewer()">
+  <button class="viewer-close" onclick="closeViewer()">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <img id="viewer-img" src="" alt="">
+</div>
+
+<!-- CONFIRMATION SUPPRESSION -->
+<div id="del-confirm-overlay" style="display:none;position:absolute;inset:0;z-index:200;background:rgba(10,10,10,0.85);align-items:center;justify-content:center;padding:32px;">
+  <div style="background:#1E1E1E;border:0.5px solid #3A3A3A;border-radius:20px;padding:24px 20px;width:100%;text-align:center;">
+    <div id="del-confirm-msg" style="font-size:16px;color:#F5F0E8;font-family:'Jost',sans-serif;margin-bottom:20px;line-height:1.4;"></div>
+    <div style="display:flex;gap:10px;">
+      <button id="del-confirm-no" style="flex:1;padding:13px;border-radius:12px;background:#2A2A2A;color:#F5F0E8;border:none;font-size:15px;font-family:'Jost',sans-serif;cursor:pointer;">Annuler</button>
+      <button id="del-confirm-yes" style="flex:1;padding:13px;border-radius:12px;background:#C0392B;color:#fff;border:none;font-size:15px;font-weight:600;font-family:'Jost',sans-serif;cursor:pointer;">Supprimer</button>
+    </div>
+  </div>
+</div>
+<!-- TUTO OVERLAY -->
+<div class="tuto-overlay" id="tuto-overlay">
+  <div class="tuto-bubble" id="tuto-bubble">
+    <div class="tuto-step" id="tuto-step"></div>
+    <div class="tuto-text" id="tuto-text"></div>
+    <div class="tuto-sub" id="tuto-sub"></div>
+    <button class="tuto-btn" id="tuto-btn" onclick="tutoNext()">Compris !</button>
+    <br>
+    <button class="tuto-skip" onclick="tutoSkip()">Passer le tutoriel</button>
+  </div>
+</div>
+
+<!-- FÉLICITATIONS -->
+<div class="congrats-overlay" id="congrats-overlay">
+  <div class="confetti-wrap" id="confetti-wrap"></div>
+  <div class="congrats-emoji">🎉</div>
+  <div class="congrats-title">Félicitations !</div>
+  <div class="congrats-sub">Votre premier objet est enregistré.<br>Votre maison n'aura plus<br>de secrets pour vous.</div>
+  <button class="congrats-btn" onclick="closeCongrats()">Découvrir mon appli</button>
+
+</div>
+
+<!-- FOUND -->
+<div class="screen" id="screen-found">
+  <div class="topbar" style="padding-bottom:10px;">
+    <button class="topbar-back" onclick="goHome()"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9A96E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="logo">Retrouve<svg width="7" height="7" viewBox="0 0 10 10" style="vertical-align:super;margin-left:2px;opacity:0.7;"><circle cx="4" cy="4" r="3" fill="none" stroke="#C9A96E" stroke-width="1.5"/><line x1="6.5" y1="6.5" x2="9" y2="9" stroke="#C9A96E" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+    <button onclick="editCurrentObject()" style="position:absolute;right:18px;top:46px;background:none;border:none;cursor:pointer;padding:8px;line-height:0;" title="Modifier">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A96E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+  </div>
+  <div class="found-hero" id="found-hero" style="cursor:pointer;" onclick="heroClick()"><div class="found-hero-bg" id="found-hero-bg"></div><div class="found-hero-overlay"></div><div class="found-hero-icon" id="found-hero-icon"></div></div>
+  <div class="found-content">
+    <div class="found-title" id="found-title"></div>
+    <div class="found-rows" id="found-rows"></div>
+    <div id="found-photo-wrap"></div>
+  </div>
+</div>
+
+<!-- STEP 1 — Objet -->
+<div class="screen" id="screen-add-photo">
+  <div class="topbar">
+    <button class="topbar-back" onclick="goHome()"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9A96E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="logo">Retrouve<svg width="7" height="7" viewBox="0 0 10 10" style="vertical-align:super;margin-left:2px;opacity:0.7;"><circle cx="4" cy="4" r="3" fill="none" stroke="#C9A96E" stroke-width="1.5"/><line x1="6.5" y1="6.5" x2="9" y2="9" stroke="#C9A96E" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="topbar-sub">Étape 1 — L'objet</div>
+  </div>
+  <div class="steps"><div class="step done"></div><div class="step"></div><div class="step"></div><div class="step"></div></div>
+  <div class="screen-body">
+    <div class="form-section">
+      <div class="field-label">Nom de l'objet</div>
+      <div class="name-row">
+        <input class="field-input" type="text" id="obj-name" placeholder="ex : Clés de chez maman" oninput="checkStep1()" autocomplete="off">
+        <button class="mic-btn-el" id="mic-btn" onclick="toggleVoice()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A96E" stroke-width="1.5" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg>
+        </button>
+      </div>
+      <div class="mic-hint" id="mic-hint">Appuyez sur le micro pour dicter</div>
+    </div>
+    <div class="form-section">
+      <div class="field-label">Catégorie de l'objet</div>
+      <div class="obj-icons-grid" id="obj-icons-grid"></div>
+      <!-- Champ libre si "Autre" catégorie -->
+      <div class="autre-field" id="autre-cat-field" style="display:none;">
+        <div class="autre-field-label">Précisez la catégorie</div>
+        <input type="text" id="autre-cat-input" placeholder="ex : Bijoux, Jouets…" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="field-label">Photo de l'objet (optionnel)</div>
+      <div class="photo-zone" onclick="document.getElementById('photo-input-obj').click()">
+        <div class="photo-placeholder" id="photo-ph-obj">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6A6050" stroke-width="1.2" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>Photographier l'objet</span>
+        </div>
+        <img id="photo-prev-obj" class="photo-preview-img" style="display:none;" alt="">
+        <button class="photo-remove-btn" id="photo-rm-obj" style="display:none;" onclick="removePhoto('obj',event)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F5F0E8" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <input type="file" id="photo-input-obj" class="photo-input" accept="image/*" onchange="handlePhoto('obj',event)">
+    </div>
+  </div>
+  <div class="screen-footer"><button id="btn-step1" class="cta" disabled onclick="goToPiece()">Continuer</button></div>
+</div>
+
+<!-- STEP 2 — Pièce -->
+<div class="screen" id="screen-add-piece">
+  <div class="topbar">
+    <button class="topbar-back" onclick="showScreen('screen-add-photo',-1)"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9A96E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="logo">Retrouve<svg width="7" height="7" viewBox="0 0 10 10" style="vertical-align:super;margin-left:2px;opacity:0.7;"><circle cx="4" cy="4" r="3" fill="none" stroke="#C9A96E" stroke-width="1.5"/><line x1="6.5" y1="6.5" x2="9" y2="9" stroke="#C9A96E" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="topbar-sub">Étape 2 — La pièce</div>
+  </div>
+  <div class="steps"><div class="step done"></div><div class="step done"></div><div class="step"></div><div class="step"></div></div>
+  <div class="picto-scroll">
+    <div class="picto-grid" id="piece-grid"></div>
+    <div class="autre-field" id="autre-piece-field" style="display:none;">
+      <div class="autre-field-label">Nom de la pièce</div>
+      <input type="text" id="autre-piece-input" placeholder="ex : Véranda, Cave à vin…" autocomplete="off" oninput="checkAutre('piece')">
+    </div>
+  </div>
+  <div class="screen-footer"><button id="btn-p" class="cta" disabled onclick="goToMeuble()">Continuer</button></div>
+</div>
+
+<!-- STEP 3 — Meuble -->
+<div class="screen" id="screen-add-meuble">
+  <div class="topbar">
+    <button class="topbar-back" onclick="showScreen('screen-add-piece',-1)"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9A96E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="logo">Retrouve<svg width="7" height="7" viewBox="0 0 10 10" style="vertical-align:super;margin-left:2px;opacity:0.7;"><circle cx="4" cy="4" r="3" fill="none" stroke="#C9A96E" stroke-width="1.5"/><line x1="6.5" y1="6.5" x2="9" y2="9" stroke="#C9A96E" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="topbar-sub" id="sub-meuble">Étape 3 — L'emplacement</div>
+  </div>
+  <div class="steps"><div class="step done"></div><div class="step done"></div><div class="step done"></div><div class="step"></div></div>
+  <div class="picto-scroll">
+    <div class="picto-grid" id="meuble-grid"></div>
+    <div class="autre-field" id="autre-meuble-field" style="display:none;">
+      <div class="autre-field-label">Nom de l'emplacement</div>
+      <input type="text" id="autre-meuble-input" placeholder="ex : Boîte à chaussures, Coffre…" autocomplete="off" oninput="checkAutre('meuble')">
+    </div>
+  </div>
+  <div class="screen-footer"><button id="btn-m" class="cta" disabled onclick="goToLocation()">Continuer</button></div>
+</div>
+
+<!-- STEP 4 -->
+<div class="screen" id="screen-add-location">
+  <div class="topbar">
+    <button class="topbar-back" onclick="showScreen('screen-add-meuble',-1)"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9A96E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="logo">Retrouve<svg width="7" height="7" viewBox="0 0 10 10" style="vertical-align:super;margin-left:2px;opacity:0.7;"><circle cx="4" cy="4" r="3" fill="none" stroke="#C9A96E" stroke-width="1.5"/><line x1="6.5" y1="6.5" x2="9" y2="9" stroke="#C9A96E" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="topbar-sub">Étape 4 — L'emplacement exact</div>
+  </div>
+  <div class="steps"><div class="step done"></div><div class="step done"></div><div class="step done"></div><div class="step done"></div></div>
+  <div class="screen-body">
+    <div class="form-section">
+      <div class="field-label">Photo de l'emplacement (optionnel)</div>
+      <div class="photo-zone" onclick="document.getElementById('photo-input-loc').click()">
+        <div class="photo-placeholder" id="photo-ph-loc">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6A6050" stroke-width="1.2" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>Photographier l'emplacement</span>
+        </div>
+        <img id="photo-prev-loc" class="photo-preview-img" style="display:none;" alt="">
+        <button class="photo-remove-btn" id="photo-rm-loc" style="display:none;" onclick="removePhoto('loc',event)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F5F0E8" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <input type="file" id="photo-input-loc" class="photo-input" accept="image/*" onchange="handlePhoto('loc',event)">
+    </div>
+    <div class="form-section">
+      <div class="field-label">Précisions</div>
+      <textarea class="field-textarea" id="obj-note" placeholder="ex : Tiroir du haut, sous les enveloppes"></textarea>
+    </div>
+  </div>
+  <div class="screen-footer"><button class="cta" onclick="saveObject()">Enregistrer</button></div>
+</div>
+
+</div>
+<script>
+// ══ SVG ICONS ══
+const AUTRE_SVG=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.8" fill="#A09880"/></svg>`;
+
+const OBJ_ICONS=[
+  {id:'cles',label:'Clés',svg:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="M21 2l-9.6 9.6"/><path d="M15.5 7.5l3 3"/><line x1="18" y1="5" x2="21" y2="8"/></svg>`},
+  {id:'chargeur',label:'Prise / Chargeur',svg:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M8 6h8l-1 6h-6z"/><path d="M9 12l-3 6h12l-3-6"/></svg>`},
+  {id:'passeport',label:'Papiers d\'identité',svg:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="10" r="3"/><line x1="8" y1="16" x2="16" y2="16"/><line x1="9" y1="19" x2="15" y2="19"/></svg>`},
+  {id:'docs2',label:'Documents',svg:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>`},
+  {id:'outils',label:'Outils',svg:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`},
+  {id:'lunettes',label:'Accessoires',svg:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="14" r="4"/><circle cx="18" cy="14" r="4"/><path d="M10 14h4"/><path d="M2 14 Q2 9 6 9"/><path d="M22 14 Q22 9 18 9"/></svg>`},
+  {id:'secours',label:'Santé',svg:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M9 6V4h6v2"/><line x1="12" y1="10" x2="12" y2="16"/><line x1="9" y1="13" x2="15" y2="13"/></svg>`},
+  {id:'sac',label:'Sac / Valise',svg:`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>`},
+  {id:'autre',label:'Autre',svg:AUTRE_SVG},
+];
+
+const PIECES=[
+  {id:'chambre',label:'Chambre',svgKey:'bed'},
+  {id:'cuisine',label:'Cuisine',svgKey:'kitchen'},
+  {id:'salon',label:'Salon',svgKey:'sofa'},
+  {id:'sdb',label:'Salle de bain',svgKey:'bath'},
+  {id:'wc',label:'WC',svgKey:'wc'},
+  {id:'entree',label:'Entrée',svgKey:'door'},
+  {id:'dressing',label:'Dressing',svgKey:'dressing'},
+  {id:'bureau',label:'Bureau',svgKey:'desk'},
+  {id:'garage',label:'Garage',svgKey:'garage'},
+  {id:'cave',label:'Cave',svgKey:'wine'},
+  {id:'grenier',label:'Grenier',svgKey:'box'},
+  {id:'autre',label:'Autre',svgKey:'autre_piece'},
+];
+
+const MEUBLES_DEFAULT=[
+  {id:'etagere',label:'Étagère',svgKey:'shelf'},
+  {id:'placard',label:'Placard',svgKey:'wardrobe'},
+  {id:'tiroir',label:'Tiroir',svgKey:'drawer'},
+  {id:'meuble',label:'Meuble',svgKey:'dresser'},
+  {id:'sol',label:'Sol',svgKey:'box'},
+  {id:'autre',label:'Autre',svgKey:'autre_piece'},
+];
+const MEUBLES={
+  chambre:[{id:'armoire',label:'Armoire',svgKey:'wardrobe'},{id:'commode',label:'Commode',svgKey:'dresser'},{id:'table-nuit',label:'Table de nuit',svgKey:'nightstand'},{id:'etagere',label:'Étagère',svgKey:'shelf'},{id:'drawer-ch',label:'Tiroir',svgKey:'drawer'},{id:'desk-ch',label:'Bureau',svgKey:'desk'},{id:'autre',label:'Autre',svgKey:'autre_piece'}],
+  cuisine:[{id:'plan',label:'Plan de travail',svgKey:'shelf'},{id:'placard-h',label:'Placard haut',svgKey:'wardrobe'},{id:'tiroir',label:'Tiroir',svgKey:'drawer'},{id:'frigo',label:'Frigo',svgKey:'fridge'},{id:'meuble-b',label:'Meuble bas',svgKey:'dresser'},{id:'evier',label:'Près évier',svgKey:'bath'},{id:'autre',label:'Autre',svgKey:'autre_piece'}],
+  salon:[{id:'canape',label:'Canapé',svgKey:'sofa'},{id:'table-b',label:'Table basse',svgKey:'nightstand'},{id:'meuble-tv',label:'Meuble TV',svgKey:'dresser'},{id:'biblio',label:'Bibliothèque',svgKey:'shelf'},{id:'tiroir-s',label:'Tiroir',svgKey:'drawer'},{id:'rebord',label:'Rebord',svgKey:'shelf'},{id:'autre',label:'Autre',svgKey:'autre_piece'}],
+  sdb:[{id:'lavabo',label:'Lavabo',svgKey:'bath'},{id:'miroir',label:'Armoire miroir',svgKey:'wardrobe'},{id:'etagere-s',label:'Étagère',svgKey:'shelf'},{id:'panier',label:'Panier',svgKey:'hook'},{id:'machine',label:'Machine à laver',svgKey:'fridge'},{id:'placard-s',label:'Placard',svgKey:'wardrobe'},{id:'autre',label:'Autre',svgKey:'autre_piece'}],
+  wc:[{id:'etagere-wc',label:'Étagère',svgKey:'shelf'},{id:'placard-wc',label:'Placard',svgKey:'wardrobe'},{id:'dessus-wc',label:'Dessus WC',svgKey:'shelf'},{id:'panier-wc',label:'Panier',svgKey:'hook'},{id:'autre',label:'Autre',svgKey:'autre_piece'}],
+  entree:[{id:'crochets',label:'Crochets',svgKey:'hook'},{id:'meuble-e',label:'Meuble entrée',svgKey:'dresser'},{id:'porte-man',label:'Porte-manteau',svgKey:'hook'},{id:'tiroir-e',label:'Tiroir',svgKey:'drawer'},{id:'etagere-e',label:'Étagère',svgKey:'shelf'},{id:'sol-e',label:'Panier sol',svgKey:'hook'},{id:'autre',label:'Autre',svgKey:'autre_piece'}],
+  dressing:[{id:'penderie',label:'Penderie',svgKey:'wardrobe'},{id:'etagere-dr',label:'Étagère',svgKey:'shelf'},{id:'tiroir-dr',label:'Tiroir',svgKey:'drawer'},{id:'sol-dr',label:'Sol',svgKey:'box'},{id:'boite-dr',label:'Boîte',svgKey:'hook'},{id:'autre',label:'Autre',svgKey:'autre_piece'}],
+  bureau:[{id:'bureau-b',label:'Bureau',svgKey:'desk'},{id:'tiroir-b',label:'Tiroir',svgKey:'drawer'},{id:'etagere-b',label:'Étagère',svgKey:'shelf'},{id:'classeur',label:'Classeur',svgKey:'dresser'},{id:'sac',label:'Sac',svgKey:'hook'},{id:'ordi',label:'Près ordi',svgKey:'desk'},{id:'autre',label:'Autre',svgKey:'autre_piece'}],
+  garage:[{id:'etagere-g',label:'Étagère',svgKey:'shelf'},{id:'caisse-g',label:'Caisse',svgKey:'box'},{id:'etabli',label:'Établi',svgKey:'desk'},{id:'penderie-g',label:'Penderie',svgKey:'wardrobe'},{id:'coffre',label:'Coffre voiture',svgKey:'box'},{id:'sol-g',label:'Sol',svgKey:'box'},{id:'autre',label:'Autre',svgKey:'autre_piece'}],
+  cave:[{id:'etagere-c',label:'Étagère',svgKey:'shelf'},{id:'caisse-c',label:'Caisse',svgKey:'box'},{id:'placard-c',label:'Placard',svgKey:'wardrobe'},{id:'rack',label:'Rack',svgKey:'shelf'},{id:'boite-c',label:'Grande boîte',svgKey:'box'},{id:'sol-c',label:'Sol',svgKey:'box'},{id:'autre',label:'Autre',svgKey:'autre_piece'}],
+  grenier:[{id:'carton',label:'Carton',svgKey:'box'},{id:'valise',label:'Valise',svgKey:'hook'},{id:'etagere-gr',label:'Étagère',svgKey:'shelf'},{id:'coffre-gr',label:'Coffre',svgKey:'wardrobe'},{id:'sol-gr',label:'Sol',svgKey:'box'},{id:'coin',label:'Coin',svgKey:'shelf'},{id:'autre',label:'Autre',svgKey:'autre_piece'}],
+  autre:MEUBLES_DEFAULT,
+};
+
+const SVGS={
+  bed:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9V6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v3"/><path d="M3 9h18v8H3z"/><path d="M3 17v2"/><path d="M21 17v2"/><rect x="6" y="9" width="4" height="4" rx="1"/></svg>`,
+  kitchen:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><circle cx="6" cy="8" r="1.5"/><circle cx="6" cy="14" r="1.5"/><line x1="13" y1="8" x2="18" y2="8"/><line x1="13" y1="13" x2="18" y2="13"/></svg>`,
+  sofa:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2"/><path d="M2 9a2 2 0 0 1 2 2v3h16v-3a2 2 0 0 1 2-2"/><path d="M4 14v3"/><path d="M20 14v3"/><line x1="4" y1="11" x2="20" y2="11"/></svg>`,
+  bath:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16v4a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-4z"/><path d="M4 12V6a2 2 0 0 1 4 0v1"/><line x1="4" y1="20" x2="3" y2="22"/><line x1="20" y1="20" x2="21" y2="22"/></svg>`,
+  wc:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14a1 1 0 0 1 1 1v2a8 8 0 0 1-16 0V9a1 1 0 0 1 1-1z"/><path d="M10 8V6a2 2 0 1 1 4 0v2"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="9" y1="22" x2="15" y2="22"/></svg>`,
+  door:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><circle cx="15" cy="13" r="1"/></svg>`,
+  dressing:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="1"/><line x1="12" y1="3" x2="12" y2="21"/><path d="M8 8 Q10 10 12 8"/><path d="M16 8 Q14 10 12 8"/><line x1="3" y1="15" x2="21" y2="15"/></svg>`,
+  desk:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="3" rx="1"/><line x1="5" y1="11" x2="5" y2="20"/><line x1="19" y1="11" x2="19" y2="20"/><rect x="8" y="3" width="8" height="5" rx="1"/><line x1="3" y1="20" x2="21" y2="20"/></svg>`,
+  garage:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V8l7-5 7 5v13"/><line x1="3" y1="21" x2="21" y2="21"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="18" x2="15" y2="18"/></svg>`,
+  wine:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l2 7a6 6 0 0 1-12 0z"/><line x1="12" y1="16" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg>`,
+  box:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-6 9 6v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  autre_piece:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.8" fill="#A09880"/></svg>`,
+  wardrobe:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="1"/><line x1="12" y1="3" x2="12" y2="21"/><circle cx="10" cy="12" r="1"/><circle cx="14" cy="12" r="1"/></svg>`,
+  dresser:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="1"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><circle cx="12" cy="6" r="0.8"/><circle cx="12" cy="12" r="0.8"/><circle cx="12" cy="18" r="0.8"/></svg>`,
+  nightstand:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6" width="16" height="14" rx="1"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="9" y1="20" x2="9" y2="22"/><line x1="15" y1="20" x2="15" y2="22"/><circle cx="12" cy="9" r="0.8"/></svg>`,
+  shelf:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/><line x1="5" y1="6" x2="5" y2="21"/><line x1="19" y1="6" x2="19" y2="21"/></svg>`,
+  fridge:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="5" y1="10" x2="19" y2="10"/><line x1="9" y1="6" x2="9" y2="9"/><line x1="9" y1="13" x2="9" y2="18"/></svg>`,
+  drawer:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="1"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="17" x2="21" y2="17"/><circle cx="12" cy="6.5" r="0.8"/><circle cx="12" cy="13.5" r="0.8"/></svg>`,
+  hook:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="3" x2="12" y2="12"/><path d="M12 12 a5 5 0 1 0 5 5"/></svg>`,
+};
+
+function svgColor(k,c){return(SVGS[k]||SVGS['autre_piece']).replace(/stroke="#A09880"/g,'stroke="'+c+'"').replace(/fill="#A09880"/g,'fill="'+c+'"');}
+function svgGold(svg){return svg.replace(/stroke="#A09880"/g,'stroke="#C9A96E"').replace(/fill="#A09880"/g,'fill="#C9A96E"');}
+
+let objects=[],selPiece=null,selMeuble=null,selObjIcon=OBJ_ICONS[0],photoObj=null,photoLoc=null;
+let _currentFoundIdx=null,_editingIdx=null;
+let recognition=null,isListening=false,currentView='list';
+
+function loadData(){try{const r=localStorage.getItem('retrouve_app');if(r)objects=JSON.parse(r);}catch(e){objects=[];}}
+function saveData(){
+  try{localStorage.setItem('retrouve_app',JSON.stringify(objects));}
+  catch(e){
+    // localStorage plein — essayer de compresser les photos
+    try{
+      const lite=objects.map(o=>({...o,photoObj:null,photoLoc:null}));
+      localStorage.setItem('retrouve_app',JSON.stringify(lite));
+      alert('Mémoire pleine : les photos ont été retirées pour sauvegarder vos objets.');
+    }catch(e2){alert('Erreur de sauvegarde. Libérez de l\'espace sur votre navigateur.');}
+  }
+}
+function showScreen(id, dir){
+  const cur = document.querySelector('.screen.active');
+  const nxt = document.getElementById(id);
+  if(!cur || !nxt || cur === nxt) return;
+  const fwd = (dir === undefined) ? true : (dir === true || Number(dir) > 0);
+  const W = document.getElementById('app').offsetWidth;
+  nxt.style.transform = 'translate3d(' + (fwd ? W : -W) + 'px,0,0)';
+  nxt.style.transition = 'none';
+  nxt.style.display = 'flex';
+  nxt.getBoundingClientRect();
+  nxt.style.transition = 'transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94)';
+  cur.style.transition = 'transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94)';
+  nxt.style.transform = 'translate3d(0,0,0)';
+  cur.style.transform = 'translate3d(' + (fwd ? -W : W) + 'px,0,0)';
+  nxt.classList.add('active');
+  setTimeout(() => {
+    cur.classList.remove('active');
+    cur.style.display = '';
+    cur.style.transform = '';
+    cur.style.transition = '';
+    nxt.style.transition = '';
+    nxt.style.transform = '';
+  }, 320);
+}
+function goHome(){stopVoice();renderList();showScreen('screen-home',false);}
+function setBtn(id,on){const b=document.getElementById(id);if(!b)return;b.disabled=!on;b.style.opacity=on?'1':'0.35';b.style.cursor=on?'pointer':'not-allowed';}
+function checkStep1(){setBtn('btn-step1',!!document.getElementById('obj-name').value.trim());}
+function setView(v){currentView=v;document.getElementById('toggle-list').classList.toggle('active',v==='list');document.getElementById('toggle-room').classList.toggle('active',v==='room');renderList(document.getElementById('search-input').value.toLowerCase());}
+
+// ── CHAMP AUTRE générique ──
+function showAutreField(fieldId,inputId,btnId){
+  const f=document.getElementById(fieldId);
+  f.style.display='block';
+  setTimeout(()=>document.getElementById(inputId).focus(),50);
+  setBtn(btnId,false);
+}
+function hideAutreField(fieldId,inputId,btnId){
+  document.getElementById(fieldId).style.display='none';
+  document.getElementById(inputId).value='';
+  setBtn(btnId,true);
+}
+function checkAutre(type){
+  if(type==='piece') setBtn('btn-p',!!document.getElementById('autre-piece-input').value.trim());
+  if(type==='meuble') setBtn('btn-m',!!document.getElementById('autre-meuble-input').value.trim());
+}
+
+// ── ICÔNES OBJETS ──
+function renderObjIcons(){
+  document.getElementById('obj-icons-grid').innerHTML=OBJ_ICONS.map(o=>`
+    <button class="obj-icon-btn ${o.id===selObjIcon.id?'selected':''}" onclick="selectObjIcon('${o.id}',this)">
+      ${o.id===selObjIcon.id?svgGold(o.svg):o.svg}
+      <span class="obj-icon-label">${o.label}</span>
+    </button>`).join('');
+  // Afficher champ si "autre" déjà sélectionné
+  const catField=document.getElementById('autre-cat-field');
+  catField.style.display=selObjIcon.id==='autre'?'block':'none';
+}
+
+function selectObjIcon(id,el){
+  selObjIcon=OBJ_ICONS.find(o=>o.id===id)||OBJ_ICONS[0];
+  document.querySelectorAll('.obj-icon-btn').forEach(b=>{b.classList.remove('selected');b.querySelectorAll('svg').forEach(s=>s.setAttribute('stroke','#A09880'));b.querySelectorAll('circle[fill]').forEach(c=>c.setAttribute('fill','#A09880'));});
+  el.classList.add('selected');
+  el.querySelectorAll('svg').forEach(s=>s.setAttribute('stroke','#C9A96E'));
+  el.querySelectorAll('circle[fill]').forEach(c=>c.setAttribute('fill','#C9A96E'));
+  // Champ libre si "Autre"
+  const catField=document.getElementById('autre-cat-field');
+  if(id==='autre'){catField.style.display='block';setTimeout(()=>document.getElementById('autre-cat-input').focus(),50);}
+  else{catField.style.display='none';document.getElementById('autre-cat-input').value='';}
+}
+
+// ── VOIX ──
+function initVoice(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return null;try{const r=new SR();r.lang='fr-FR';r.continuous=false;r.interimResults=true;r.maxAlternatives=1;r.onresult=e=>{let f='',t='';for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)f+=e.results[i][0].transcript;else t+=e.results[i][0].transcript;}const inp=document.getElementById('obj-name');if(f){inp.value=f.charAt(0).toUpperCase()+f.slice(1).trim();checkStep1();stopVoice();}else if(t)inp.placeholder=t;};r.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed'){document.getElementById('mic-hint').textContent='Micro non autorisé';}stopVoice();};r.onend=()=>stopVoice();return r;}catch(e){return null;}}
+function toggleVoice(){if(isListening){stopVoice();return;}if(!recognition)recognition=initVoice();if(!recognition){document.getElementById('mic-hint').textContent='Non supporté';return;}try{recognition.start();isListening=true;document.getElementById('mic-btn').classList.add('listening');const h=document.getElementById('mic-hint');h.textContent='Écoute… parlez';h.classList.add('active');document.getElementById('obj-name').placeholder='…';}catch(e){stopVoice();}}
+function stopVoice(){isListening=false;if(recognition)try{recognition.stop();}catch(e){}const b=document.getElementById('mic-btn');if(b)b.classList.remove('listening');const h=document.getElementById('mic-hint');if(h){h.textContent='Appuyez sur le micro pour dicter';h.classList.remove('active');}const i=document.getElementById('obj-name');if(i&&!i.value)i.placeholder='ex : Clés de chez maman';}
+
+// ── PHOTOS ──
+function compressPhoto(dataUrl,maxW,cb){
+  const img=new Image();
+  img.onload=function(){
+    const c=document.createElement('canvas');
+    let w=img.width,h=img.height;
+    if(w>maxW){h=Math.round(h*(maxW/w));w=maxW;}
+    c.width=w;c.height=h;
+    c.getContext('2d').drawImage(img,0,0,w,h);
+    cb(c.toDataURL('image/jpeg',0.7));
+  };
+  img.onerror=function(){cb(dataUrl);};
+  img.src=dataUrl;
+}
+function handlePhoto(type,e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{const d=ev.target.result;compressPhoto(d,800,function(compressed){if(type==='obj'){photoObj=compressed;document.getElementById('photo-prev-obj').src=compressed;document.getElementById('photo-prev-obj').style.display='block';document.getElementById('photo-ph-obj').style.display='none';document.getElementById('photo-rm-obj').style.display='flex';}else{photoLoc=compressed;document.getElementById('photo-prev-loc').src=compressed;document.getElementById('photo-prev-loc').style.display='block';document.getElementById('photo-ph-loc').style.display='none';document.getElementById('photo-rm-loc').style.display='flex';}});};reader.readAsDataURL(file);}
+function removePhoto(type,e){e.stopPropagation();if(type==='obj'){photoObj=null;document.getElementById('photo-prev-obj').style.display='none';document.getElementById('photo-ph-obj').style.display='flex';document.getElementById('photo-rm-obj').style.display='none';document.getElementById('photo-input-obj').value='';}else{photoLoc=null;document.getElementById('photo-prev-loc').style.display='none';document.getElementById('photo-ph-loc').style.display='flex';document.getElementById('photo-rm-loc').style.display='none';document.getElementById('photo-input-loc').value='';}}
+
+// ── FLUX ──
+function goToAdd(){
+  selPiece=null;selMeuble=null;selObjIcon=OBJ_ICONS[0];photoObj=null;photoLoc=null;
+  renderObjIcons();
+  document.getElementById('obj-name').value='';document.getElementById('autre-cat-input').value='';
+  document.getElementById('autre-cat-field').style.display='none';
+  setBtn('btn-step1',false);
+  document.getElementById('photo-prev-obj').style.display='none';document.getElementById('photo-ph-obj').style.display='flex';document.getElementById('photo-rm-obj').style.display='none';
+  stopVoice();showScreen('screen-add-photo',1);
+}
+
+function goToPiece(){
+  // Sauvegarder la sélection courante avant de reconstruire la grille
+  const savedPiece = selPiece;
+  document.getElementById('piece-grid').innerHTML=PIECES.map(p=>`
+    <button class="picto-btn ${savedPiece===p.id?'selected':''}" onclick="selectPiece('${p.id}',this)" style="${savedPiece===p.id?'transform:scale(1.05);':''}">
+      <div class="check-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="picto-inner">${(savedPiece===p.id?svgGold(SVGS[p.svgKey]||SVGS['autre_piece']):(SVGS[p.svgKey]||SVGS['autre_piece']))}<span class="picto-label">${p.label}</span></div>
+    </button>`).join('');
+  document.getElementById('autre-piece-field').style.display='none';
+  document.getElementById('autre-piece-input').value='';
+  if(!savedPiece){selPiece=null;}
+  setBtn('btn-p', !!savedPiece);
+  showScreen('screen-add-piece',1);
+}
+
+function selectPiece(id,el){
+  selPiece=id;
+  document.querySelectorAll('#piece-grid .picto-btn').forEach(b=>{b.classList.remove('selected');b.style.transform='';b.querySelectorAll('.picto-inner svg').forEach(s=>s.setAttribute('stroke','#A09880'));b.querySelectorAll('.picto-inner circle[fill]').forEach(c=>c.setAttribute('fill','#A09880'));});
+  el.classList.add('selected');
+  el.querySelectorAll('.picto-inner svg').forEach(s=>s.setAttribute('stroke','#C9A96E'));
+  el.querySelectorAll('.picto-inner circle[fill]').forEach(c=>c.setAttribute('fill','#C9A96E'));
+  if(id==='autre'){showAutreField('autre-piece-field','autre-piece-input','btn-p');}
+  else{hideAutreField('autre-piece-field','autre-piece-input','btn-p');}
+}
+
+function goToMeuble(){
+  if(!selPiece)return;
+  let pieceLabel=PIECES.find(p=>p.id===selPiece)?.label||'';
+  if(selPiece==='autre'){const c=document.getElementById('autre-piece-input').value.trim();if(c)pieceLabel=c;}
+  document.getElementById('sub-meuble').textContent=`Étape 3 — ${pieceLabel}`;
+  const meubles=MEUBLES[selPiece]||MEUBLES['autre'];
+  const savedMeuble = selMeuble;
+  // Reconstruire avec sélection préservée
+  document.getElementById('meuble-grid').innerHTML=meubles.map(m=>`
+    <button class="picto-btn ${savedMeuble===m.id?'selected':''}" onclick="selectMeuble('${m.id}',this)" style="${savedMeuble===m.id?'transform:scale(1.05);':''}">
+      <div class="check-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="picto-inner" style="padding:8px 0;">${(savedMeuble===m.id?svgGold(SVGS[m.svgKey]||SVGS['autre_piece']):(SVGS[m.svgKey]||SVGS['autre_piece']))}<span class="picto-label">${m.label}</span></div>
+    </button>`).join('');
+  document.getElementById('autre-meuble-field').style.display='none';
+  document.getElementById('autre-meuble-input').value='';
+  if(!savedMeuble){selMeuble=null;}
+  setBtn('btn-m', !!savedMeuble);
+  showScreen('screen-add-meuble',1);
+}
+
+function selectMeuble(id,el){
+  selMeuble=id;
+  document.querySelectorAll('#meuble-grid .picto-btn').forEach(b=>{b.classList.remove('selected');b.style.transform='';b.querySelectorAll('.picto-inner svg').forEach(s=>s.setAttribute('stroke','#A09880'));b.querySelectorAll('.picto-inner circle[fill]').forEach(c=>c.setAttribute('fill','#A09880'));});
+  el.classList.add('selected');
+  el.querySelectorAll('.picto-inner svg').forEach(s=>s.setAttribute('stroke','#C9A96E'));
+  el.querySelectorAll('.picto-inner circle[fill]').forEach(c=>c.setAttribute('fill','#C9A96E'));
+  if(id==='autre'){showAutreField('autre-meuble-field','autre-meuble-input','btn-m');}
+  else{hideAutreField('autre-meuble-field','autre-meuble-input','btn-m');}
+}
+
+function goToLocation(){
+  if(!selMeuble)return;
+  photoLoc=null;
+  document.getElementById('photo-prev-loc').style.display='none';document.getElementById('photo-ph-loc').style.display='flex';document.getElementById('photo-rm-loc').style.display='none';
+  document.getElementById('obj-note').value='';showScreen('screen-add-location',1);
+}
+
+function saveObject(){
+  const name=document.getElementById('obj-name').value.trim();if(!name)return;
+  const pieceData=PIECES.find(p=>p.id===selPiece);
+  let pieceLabel=pieceData?.label||'';
+  if(selPiece==='autre'){const c=document.getElementById('autre-piece-input').value.trim();if(c)pieceLabel=c;}
+  // Catégorie objet
+  let objLabel=selObjIcon.label;
+  let objSvg=selObjIcon.svg;
+  if(selObjIcon.id==='autre'){
+    const c=document.getElementById('autre-cat-input').value.trim();
+    if(c)objLabel=c;
+  }
+  // Meuble
+  const meubles=MEUBLES[selPiece]||MEUBLES['autre'];
+  const meubleData=meubles.find(m=>m.id===selMeuble);
+  let meubleLabel=meubleData?.label||'';
+  let meubleSvgKey=meubleData?.svgKey||'autre_piece';
+  if(selMeuble==='autre'){const c=document.getElementById('autre-meuble-input').value.trim();if(c)meubleLabel=c;}
+
+  const isFirst=objects.length===0&&_editingIdx===null;
+  const now = Date.now();
+  const objData={id:_editingIdx!==null?objects[_editingIdx].id:now,name,
+    objId:selObjIcon.id,objSvg,objLabel,
+    photoObj,
+    pieceId:selPiece,pieceLabel,pieceSvgKey:pieceData?.svgKey||'autre_piece',pieceBg:pieceData?.bg||'',
+    meubleId:selMeuble,meubleLabel,meubleSvgKey,
+    note:document.getElementById('obj-note').value.trim(),photoLoc,
+    createdAt:_editingIdx!==null?objects[_editingIdx].createdAt:now,
+    updatedAt:now
+  };
+  if(_editingIdx!==null){objects[_editingIdx]=objData;}
+  else{objects.push(objData);}
+  _editingIdx=null;
+  saveData();
+  if(isFirst){setTimeout(()=>showCongrats(),400);}
+  goHome();
+}
+
+function heroClick(){
+  if(window._heroPhoto) openViewer(window._heroPhoto);
+}
+
+function openViewer(src){
+  document.getElementById('viewer-img').src = src;
+  document.getElementById('photo-viewer').classList.add('show');
+}
+function closeViewer(){
+  document.getElementById('photo-viewer').classList.remove('show');
+  document.getElementById('viewer-img').src = '';
+}
+
+function timeAgo(ts){
+  if(!ts) return null;
+  const diff = Date.now() - ts;
+  const mins  = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days  = Math.floor(diff / 86400000);
+  const weeks = Math.floor(days / 7);
+  const months= Math.floor(days / 30);
+  if(mins < 1)   return 'à l\'instant';
+  if(mins < 60)  return 'il y a ' + mins + ' min';
+  if(hours < 24) return 'il y a ' + hours + ' h';
+  if(days === 1) return 'hier';
+  if(days < 7)   return 'il y a ' + days + ' jours';
+  if(weeks === 1)return 'il y a 1 semaine';
+  if(weeks < 5)  return 'il y a ' + weeks + ' semaines';
+  if(months === 1)return 'il y a 1 mois';
+  return 'il y a ' + months + ' mois';
+}
+
+function showFound(idx){
+  _currentFoundIdx=idx;
+  const obj=objects[idx];
+  document.getElementById('found-hero-bg').style.backgroundImage=obj.photoObj?`url('${obj.photoObj}')`:obj.pieceBg?`url('${obj.pieceBg}')`:'';
+  window._heroPhoto = obj.photoObj || null;
+  document.getElementById('found-hero-icon').innerHTML=`<div style="width:52px;height:52px;background:rgba(10,10,10,0.8);border:1px solid #C9A96E;border-radius:14px;display:flex;align-items:center;justify-content:center;">${svgGold(obj.objSvg||SVGS['autre_piece'])}</div>`;
+  document.getElementById('found-title').textContent=obj.name;
+  document.getElementById('found-rows').innerHTML=`
+    <div class="found-row"><div style="width:32px;display:flex;justify-content:center;">${svgColor(obj.pieceSvgKey,'#C9A96E')}</div><div><div class="found-row-label">Pièce</div><div class="found-row-val" style="color:#C9A96E;">${obj.pieceLabel}</div></div></div>
+    <div class="found-row"><div style="width:32px;display:flex;justify-content:center;">${svgColor(obj.meubleSvgKey,'#A09880')}</div><div><div class="found-row-label">Emplacement</div><div class="found-row-val">${obj.meubleLabel}</div></div></div>
+    ${obj.note?`<div class="found-row"><div style="width:32px;display:flex;justify-content:center;">${svgColor('shelf','#A09880')}</div><div><div class="found-row-label">Précisions</div><div class="found-row-val">${obj.note}</div></div></div>`:''}
+    ${obj.updatedAt||obj.createdAt?`<div class="found-row"><div style="width:32px;display:flex;justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6A6050" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg></div><div><div class="found-row-label">Mis à jour</div><div class="found-row-val" style="color:#6A6050;font-size:13px;">${timeAgo(obj.updatedAt||obj.createdAt)}</div></div></div>`:''}`;
+  document.getElementById('found-photo-wrap').innerHTML=obj.photoLoc?`<div class="found-photo-label">Photo de l'emplacement</div><div class="found-photo" onclick="openViewer('${obj.photoLoc}')"><img src="${obj.photoLoc}"></div>`:'';
+  showScreen('screen-found');
+}
+
+function deleteObject(idx){objects.splice(idx,1);saveData();renderList();}
+function filterObjects(){renderList(document.getElementById('search-input').value.toLowerCase());}
+function toggleGroup(id){const items=document.getElementById('items-'+id);const chev=document.getElementById('chev-'+id);if(items&&chev){const open=items.classList.toggle('open');chev.classList.toggle('open',open);}}
+
+function confirmDelete(idx, e){
+  e.stopPropagation();
+  e.preventDefault();
+  // confirm() bloqué dans Safari iframe — on utilise un mini-overlay
+  const overlay = document.getElementById('del-confirm-overlay');
+  const msg = document.getElementById('del-confirm-msg');
+  const obj = objects[idx];
+  msg.textContent = 'Supprimer "' + (obj ? obj.name : '') + '" ?';
+  overlay.style.display = 'flex';
+  document.getElementById('del-confirm-yes').onclick = function(){
+    overlay.style.display = 'none';
+    deleteObject(idx);
+  };
+  document.getElementById('del-confirm-no').onclick = function(){
+    overlay.style.display = 'none';
+  };
+}
+function cardHtml(obj){
+  return `<div class="object-card" onclick="showFound(${obj._i})">
+    <div class="object-icon-wrap">${obj.photoObj?`<img src="${obj.photoObj}" alt="">`:obj.photoLoc?`<img src="${obj.photoLoc}" alt="">`:svgGold(obj.objSvg||SVGS['autre_piece'])}</div>
+    <div class="object-info"><div class="object-name">${obj.name}</div><div class="object-loc"><span>${obj.pieceLabel}</span> · ${obj.meubleLabel}</div></div>
+    <button class="del-x" onclick="startEdit(${obj._i},event)" title="Modifier">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A96E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    </button>
+    <button class="del-x" onclick="confirmDelete(${obj._i},event)" title="Supprimer">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>`;
+}
+
+function roomItemHtml(obj){
+  return `<div class="room-item" onclick="showFound(${obj._i})">
+    <div class="room-item-icon">${obj.photoObj?`<img src="${obj.photoObj}" alt="">`:obj.photoLoc?`<img src="${obj.photoLoc}" alt="">`:svgGold(obj.objSvg||SVGS['autre_piece'])}</div>
+    <div class="room-item-info"><div class="room-item-name">${obj.name}</div><div class="room-item-sub">${obj.meubleLabel}</div></div>
+    <button class="del-x" onclick="startEdit(${obj._i},event)" title="Modifier">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#C9A96E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    </button>
+    <button class="del-x" onclick="confirmDelete(${obj._i},event)" title="Supprimer">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A09880" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>`;
+}
+
+function renderList(q=''){
+  const list=document.getElementById('objects-list');
+  const label=document.getElementById('list-label');
+  const all=objects.map((o,i)=>({...o,_i:i})).reverse();
+  const filtered=q?all.filter(o=>o.name.toLowerCase().includes(q)||o.pieceLabel.toLowerCase().includes(q)||o.meubleLabel.toLowerCase().includes(q)):all;
+  if(!filtered.length){
+    label.textContent=q?'Résultats (0)':'Mes objets';
+    list.innerHTML=`<div class="empty"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#3A3A3A" stroke-width="1" stroke-linecap="round" style="display:block;margin:0 auto;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>${q?'Aucun résultat.':'Aucun objet enregistré.<br>Appuyez sur + pour commencer.'}</p></div>`;
+    return;
+  }
+  if(currentView==='list'||q){
+    label.textContent=q?`Résultats (${filtered.length})`:'Mes objets';
+    list.innerHTML=filtered.map(obj=>cardHtml(obj)).join('');
+  } else {
+    label.textContent='Par pièce';
+    const rooms={};
+    filtered.forEach(obj=>{const key=obj.pieceLabel||'Autre';if(!rooms[key])rooms[key]={label:key,svgKey:obj.pieceSvgKey||'autre_piece',items:[]};rooms[key].items.push(obj);});
+    list.innerHTML=Object.values(rooms).map((room,ri)=>`
+      <div class="room-group">
+        <div class="room-group-header" onclick="toggleGroup('${ri}')">
+          <div class="room-group-icon">${svgColor(room.svgKey,'#C9A96E')}</div>
+          <div class="room-group-info"><div class="room-group-name">${room.label}</div><div class="room-group-count">${room.items.length} objet${room.items.length>1?'s':''}</div></div>
+          <div class="room-group-chevron" id="chev-${ri}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6A6050" stroke-width="1.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="room-items" id="items-${ri}">
+          ${room.items.map(obj=>roomItemHtml(obj)).join('')}
+        </div>
+      </div>`).join('');
+  }
+}
+// ── ÉDITION DEPUIS FICHE ──
+function editCurrentObject(){
+  if(_currentFoundIdx===null)return;
+  goHome();
+  setTimeout(()=>startEdit(_currentFoundIdx),350);
+}
+
+
+
+function startEdit(idx, e){
+  if(e) e.stopPropagation();
+  _editingIdx=idx;
+  const obj=objects[idx];
+  selPiece=null;selMeuble=null;photoObj=null;photoLoc=null;
+  document.getElementById('obj-name').value=obj.name;
+  checkStep1();
+  selObjIcon=OBJ_ICONS.find(o=>o.id===obj.objId)||OBJ_ICONS[0];
+  if(obj.photoObj){photoObj=obj.photoObj;document.getElementById('photo-prev-obj').src=obj.photoObj;document.getElementById('photo-prev-obj').style.display='block';document.getElementById('photo-ph-obj').style.display='none';document.getElementById('photo-rm-obj').style.display='flex';}
+  else{document.getElementById('photo-prev-obj').style.display='none';document.getElementById('photo-ph-obj').style.display='flex';document.getElementById('photo-rm-obj').style.display='none';}
+  if(obj.photoLoc){photoLoc=obj.photoLoc;document.getElementById('photo-prev-loc').src=obj.photoLoc;document.getElementById('photo-prev-loc').style.display='block';document.getElementById('photo-ph-loc').style.display='none';document.getElementById('photo-rm-loc').style.display='flex';}
+  else{document.getElementById('photo-prev-loc').style.display='none';document.getElementById('photo-ph-loc').style.display='flex';document.getElementById('photo-rm-loc').style.display='none';}
+  selPiece=obj.pieceId;
+  selMeuble=obj.meubleId;
+  renderObjIcons();
+  setBtn('btn-step1',true);
+  showScreen('screen-add-photo',1);
+}
+
+loadData();renderList();
+
+// ══ TUTORIEL ══
+// Une bulle par écran — s'affiche UNIQUEMENT en arrivant sur le bon écran
+const TUTO={
+  home:  {step:'Bienvenue 👋',           text:'Ajoutons votre premier objet',  sub:'Appuyez sur "Ajouter un objet" en bas à droite pour commencer.',                                                      btn:"C'est parti !"},
+  step1: {step:'Étape 1 sur 4',          text:'Nommez votre objet',            sub:"Tapez ou dictez le nom de l'objet que vous voulez retrouver facilement.",                                               btn:'Compris !'},
+  step2: {step:'Étape 2 sur 4',          text:'Choisissez la pièce',           sub:"Dans quelle pièce avez-vous rangé cet objet ?",                                                                        btn:'Compris !'},
+  step3: {step:'Étape 3 sur 4',          text:"Choisissez l'emplacement",      sub:"Précisez le meuble ou l'endroit exact dans cette pièce.",                                                              btn:'Compris !'},
+  step4: {step:'Étape 4 sur 4',          text:'Photo & précisions',            sub:"Optionnel — prenez une photo et ajoutez des précisions si besoin. Puis appuyez sur Enregistrer !",                     btn:'Compris !'},
+
+};
+let tutoActive=false;
+let tutoDone={home:false,step1:false,step2:false,step3:false,step4:false};
+
+function startTuto(){
+  tutoActive=true;
+  showTutoBubble('home');
+  const fab=document.getElementById('fab-area');
+  if(fab) fab.classList.add('tuto-pulse');
+}
+function showTutoBubble(key){
+  if(!tutoActive||tutoDone[key])return;
+  const s=TUTO[key];if(!s)return;
+  document.getElementById('tuto-step').textContent=s.step;
+  document.getElementById('tuto-text').textContent=s.text;
+  const subText = s.sub;
+  document.getElementById('tuto-sub').innerHTML = subText;
+  document.getElementById('tuto-btn').textContent=s.btn;
+  // Cacher "Passer le tutoriel" sur la dernière étape
+
+  // Position : QR = haut, autres = bas
+  const overlay=document.getElementById('tuto-overlay');
+  if(key==='qr'){
+    overlay.style.justifyContent='flex-start';
+    overlay.style.paddingTop='330px';
+    overlay.style.paddingBottom='0';
+  } else {
+    overlay.style.justifyContent='flex-end';
+    overlay.style.paddingTop='0';
+    overlay.style.paddingBottom='80px';
+  }
+  const bubble=document.getElementById('tuto-bubble');
+  bubble.style.animation='none';void bubble.offsetWidth;bubble.style.animation='';
+  overlay.classList.add('show');
+  overlay.dataset.key=key;
+}
+function tutoNext(){
+  const key=document.getElementById('tuto-overlay').dataset.key;
+  tutoDone[key]=true;
+  document.getElementById('tuto-overlay').classList.remove('show');
+
+  if(key==='home'){
+    const fab=document.getElementById('fab-area');
+    if(fab) fab.classList.remove('tuto-pulse');
+    goToAdd();
+    // La bulle step1 s'affiche automatiquement via le patch showScreen
+  }
+}
+function tutoSkip(){
+  tutoActive=false;
+  document.getElementById('tuto-overlay').classList.remove('show');
+  const fab=document.getElementById('fab-area');
+  if(fab) fab.classList.remove('tuto-pulse');
+  localStorage.setItem('retrouve_tuto_done','1');
+}
+// Patch showScreen — une bulle différente par écran, jamais plusieurs à la fois
+const _origShowScreen=showScreen;
+window.showScreen=function(id,dir){
+  _origShowScreen(id,dir);
+  if(!tutoActive)return;
+  const map={'screen-add-photo':'step1','screen-add-piece':'step2','screen-add-meuble':'step3','screen-add-location':'step4'};
+  const key=map[id];
+  if(key) setTimeout(()=>showTutoBubble(key),380);
+};
+
+// ══ FÉLICITATIONS ══
+function showCongrats(){
+  const overlay=document.getElementById('congrats-overlay');
+  overlay.classList.add('show');
+  spawnConfetti();
+}
+function closeCongrats(){
+  document.getElementById('congrats-overlay').classList.remove('show');
+  localStorage.setItem('retrouve_tuto_done','1');
+}
+function spawnConfetti(){
+  const wrap=document.getElementById('confetti-wrap');
+  wrap.innerHTML='';
+  const colors=['#C9A96E','#E8D5AA','#F5F0E8','#A09880','#ffffff','#FFD700'];
+  for(let i=0;i<60;i++){
+    const p=document.createElement('div');
+    p.className='confetti-piece';
+    p.style.left=Math.random()*100+'%';
+    p.style.background=colors[Math.floor(Math.random()*colors.length)];
+    p.style.width=(6+Math.random()*6)+'px';
+    p.style.height=(6+Math.random()*6)+'px';
+    p.style.borderRadius=Math.random()>0.5?'50%':'2px';
+    const delay=Math.random()*0.8;
+    const dur=1.5+Math.random()*1.5;
+    p.style.animation=`confettiFall ${dur}s ${delay}s linear both`;
+    wrap.appendChild(p);
+  }
+}
+
+// Démarrer le tuto si 1ère visite (seulement si l'intro a déjà été vue)
+if(!localStorage.getItem('retrouve_tuto_done')&&objects.length===0&&localStorage.getItem('retrouve_intro_done')){
+  setTimeout(()=>startTuto(),600);
+}
+
+// ══ INTRO (1ère ouverture) ══
+function initIntro(){
+  if(localStorage.getItem('retrouve_intro_done')) return;
+  document.getElementById('intro-screen').style.display='flex';
+}
+function dismissIntro(){
+  localStorage.setItem('retrouve_intro_done','1');
+  const intro=document.getElementById('intro-screen');
+  intro.classList.add('hide');
+  setTimeout(()=>{intro.style.display='none';},500);
+  // Lancer le tuto après l'intro si c'est la 1ère visite
+  if(!localStorage.getItem('retrouve_tuto_done')&&objects.length===0){
+    setTimeout(()=>startTuto(),700);
+  }
+}
+initIntro();
+
+// ══ ANDROID FIXES ══
+// Fix 1: Hauteur réelle du viewport (barre d'adresse Chrome Android)
+function setAppHeight(){
+  document.documentElement.style.setProperty('--app-h', window.innerHeight + 'px');
+}
+setAppHeight();
+window.addEventListener('resize', setAppHeight);
+// Aussi sur orientationchange pour Android
+window.addEventListener('orientationchange', function(){setTimeout(setAppHeight, 150);});
+
+// Fix 2: Scroll l'input visible quand le clavier Android s'ouvre
+document.addEventListener('focusin', function(e){
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'){
+    setTimeout(function(){
+      e.target.scrollIntoView({behavior:'smooth',block:'center'});
+    }, 300);
+  }
+});
+
+// Fix 3: Empêcher le pull-to-refresh Android qui casse les transitions
+document.body.style.overscrollBehavior='none';
+</script>
+</body>
+</html>
